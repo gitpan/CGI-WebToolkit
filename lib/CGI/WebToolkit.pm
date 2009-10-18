@@ -10,7 +10,7 @@ use Data::Dump qw(dump);
 use DBI;
 use Digest::MD5 qw(md5_hex);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 our $WTK = undef;
 
@@ -1777,7 +1777,8 @@ The directory structure of the B<private directory> as required by
 CGI::WebToolkit, usually this would go B<outside> of the web-accessable area
 on the server:
 
-	acls/
+	accesschecks/
+	accessconfigs/
 	cacheconfigs/
 	configs/
 	generators/
