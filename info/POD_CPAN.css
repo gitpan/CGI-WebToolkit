@@ -1,0 +1,101 @@
+body { background: white; }
+
+body {
+  color: black;
+  font-family: arial,sans-serif;
+  margin: 0;
+  padding: 1ex;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  border-width: 0;
+  color: inherit;
+}
+
+img { border: 0; }
+form { margin: 0; }
+input { margin: 2px; }
+
+a:link, a:visited {
+  background: transparent;
+  color: #006699;
+}
+
+td {
+  margin: 0;
+  padding: 0;
+}
+
+div {
+  border-width: 0;
+}
+
+dt {
+  margin-top: 1em;
+}
+
+th {
+  background: #bbbbbb;
+  color: inherit;
+  padding: 0.4ex 1ex;
+  text-align: left;
+}
+
+th a:link, th a:visited {
+  background: transparent;
+  color: black;
+}
+
+.pod pre 	{
+  background: #eeeeee;
+  border: 1px solid #888888;
+  color: black;
+  padding: 1em;
+  white-space: pre;
+}
+
+.pod h1      {
+  background: transparent;
+  color: #006699;
+  font-size: large;
+}
+
+.pod h1 a { text-decoration: none; }
+.pod h2 a { text-decoration: none; }
+.pod h3 a { text-decoration: none; }
+.pod h4 a { text-decoration: none; }
+
+.pod h2      {
+  background: transparent;
+  color: #006699;
+  font-size: medium;
+}
+
+.pod h3      {
+  background: transparent;
+  color: #006699;
+  font-size: medium;
+  font-style: italic;
+}
+
+.pod h4      {
+  background: transparent;
+  color: #006699;
+  font-size: medium;
+  font-weight: normal;
+}
+
+.pod img     {
+  vertical-align: top;
+}
+
+.pod .toc a  {
+  text-decoration: none;
+}
+
+.pod .toc li {
+  line-height: 1.2em;
+  list-style-type: none;
+}

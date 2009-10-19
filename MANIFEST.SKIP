@@ -1,0 +1,12 @@
+\.tar\.gz$
+\.svn
+_build
+Build
+blib
+Makefile
+multi
+.*[Mm]y[Cc]ontacts.*
+.*[Ee][Gg]uitr.*
+.*[Aa]list.*
+.*phpminiadmin.*
+.*t\/info\/.*

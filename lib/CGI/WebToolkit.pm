@@ -10,7 +10,7 @@ use Data::Dump qw(dump);
 use DBI;
 use Digest::MD5 qw(md5_hex);
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 our $WTK = undef;
 
@@ -132,7 +132,7 @@ sub handle
 
 sub call
 {
-	my ($self, $function_name, @args) = _parse__args(@_);
+	my ($self, $function_name, @args) = _parse_args(@_);
 
 	# check if user is allowed to execute workflow function
 	$function_name = $self->{'entryaction'}
@@ -192,7 +192,7 @@ sub call
 
 sub output
 {
-	my ($self, $status, $info, $content, $mimetype) = _parse__args(@_);
+	my ($self, $status, $info, $content, $mimetype) = _parse_args(@_);
 	$status   = 1 			unless defined $status;
 	$info     = 'ok' 		unless defined $info;
 	$content  = '' 			unless defined $content;
@@ -208,7 +208,7 @@ sub output
 
 sub followup
 {
-	my ($self, $function_name, @args) = _parse__args(@_);
+	my ($self, $function_name, @args) = _parse_args(@_);
 	return {
 		'type'          => 'followup',
 		'function_name' => $function_name,
@@ -220,7 +220,7 @@ sub followup
 
 sub get
 {
-	my ($self, $varname) = _parse__args(@_);
+	my ($self, $varname) = _parse_args(@_);
 	return 1 if $self->{'sessiontable'} eq '';
 	
 	if (exists $self->{'session'}->{$varname}) {
@@ -232,7 +232,7 @@ sub get
 
 sub set
 {
-	my ($self, $varname, $value) = _parse__args(@_);
+	my ($self, $varname, $value) = _parse_args(@_);
 	return 1 if $self->{'sessiontable'} eq '';
 	
 	$self->{'session'}->{$varname} = (defined $value ? $value : '');
@@ -241,7 +241,7 @@ sub set
 
 sub unset
 {
-	my ($self, $name) = _parse__args(@_);
+	my ($self, $name) = _parse_args(@_);
 	return 1 if $self->{'sessiontable'} eq '';
 	
 	delete $self->{'session'}->{$name}
@@ -254,7 +254,7 @@ sub unset
 
 sub fill
 {
-	my ($self, $template_name, $data) = _parse__args(@_);
+	my ($self, $template_name, $data) = _parse_args(@_);
 	my @data = (ref($data) eq 'ARRAY' ? @{$data} : ($data));
 
 	my $filename = $self->_get_external_function_filename( 'generators', $template_name );
@@ -319,7 +319,7 @@ sub fill
 
 sub _
 {
-	my ($self, $phrase, $language) = _parse__args(@_);
+	my ($self, $phrase, $language) = _parse_args(@_);
 	return '' unless defined $phrase;
 
 	return $phrase
@@ -354,7 +354,7 @@ sub _
 
 sub lang
 {
-	my ($self, $language) = _parse__args(@_);
+	my ($self, $language) = _parse_args(@_);
 	if (defined $language) {
 		# set
 		$self->set($language);
@@ -368,7 +368,7 @@ sub lang
 
 sub translate
 {
-	my ($self, @pairs) = _parse__args(@_);
+	my ($self, @pairs) = _parse_args(@_);
 	return 0
 		if $self->{'phrasetable'} eq '';
 	
@@ -427,7 +427,7 @@ sub translate
 
 sub find
 {
-	my ($self, %options) = _parse__args(@_);
+	my ($self, %options) = _parse_args(@_);
 	my $opts = _parse_params( \%options,
 		{
 			tables 		=> [],
@@ -478,7 +478,7 @@ sub find
 
 sub create
 {
-	my ($self, %options) = _parse__args(@_);
+	my ($self, %options) = _parse_args(@_);
 	my $opts = _parse_params( \%options,
 		{
 			table => undef,
@@ -505,7 +505,7 @@ sub create
 
 sub update
 {
-	my ($self, %options) = _parse__args(@_);
+	my ($self, %options) = _parse_args(@_);
 	my $opts = _parse_params( \%options,
 		{
 			table => '',
@@ -537,7 +537,7 @@ sub update
 
 sub remove
 {
-	my ($self, %options) = _parse__args(@_);
+	my ($self, %options) = _parse_args(@_);
 	my $opts = _parse_params( \%options,
 		{
 			table => '',
@@ -561,7 +561,7 @@ sub remove
 
 sub load
 {
-	my ($self, $group, $recordset, $tablename) = _parse__args(@_);
+	my ($self, $group, $recordset, $tablename) = _parse_args(@_);
 	
 	my $records	= _load_data_file($self->{'privatepath'}.'/data/'.$group.'/'.$recordset.'.txt');
 	
@@ -594,7 +594,7 @@ sub load
 
 sub query
 {
-	my ($self, $sql) = _parse__args(@_);
+	my ($self, $sql) = _parse_args(@_);
 	$self->_connect_to_db();
 	my $query = $self->{'dbh'}->prepare($sql);
 	$query->execute()
@@ -606,7 +606,7 @@ sub query
 
 sub getparam
 {
-	my ($self, $name, $default, $regex) = _parse__args(@_);
+	my ($self, $name, $default, $regex) = _parse_args(@_);
 	$regex = '.*' unless defined $regex;
 	my $value = param($name);
 	return (defined $value && $value =~ /$regex/ ? $value : $default);
@@ -616,7 +616,7 @@ sub getparam
 
 sub login
 {
-	my ($self, $loginname, $password) = _parse__args(@_);
+	my ($self, $loginname, $password) = _parse_args(@_);
 	return 1 if $self->{'usertable'} eq '';
 
 	return 0 unless defined $loginname;
@@ -653,7 +653,7 @@ sub login
 
 sub logout
 {
-	my ($self) = _parse__args(@_);
+	my ($self) = _parse_args(@_);
 	return 1 if $self->{'usertable'} eq '';
 
 	$self->unset('user');
@@ -667,7 +667,7 @@ sub allowed
 	my ($self,
 		$function_name,	# workflow function name
 		$loginname,		# loginname of user
-		) = _parse__args(@_);
+		) = _parse_args(@_);
 
 	return 1 if $self->{'accessconfig'} eq '';
 
@@ -704,7 +704,7 @@ sub allowed
 
 sub logmsg
 {
-	my ($self, $msg, $priority) = _parse__args(@_);
+	my ($self, $msg, $priority) = _parse_args(@_);
 	
 	$msg .= "\r\n" if $msg !~ /\r?\n$/;
 	
@@ -729,7 +729,7 @@ sub logmsg
 
 sub fail
 {
-	my ($self, $msg) = _parse__args(@_);
+	my ($self, $msg) = _parse_args(@_);
 	_die($msg);
 }
 
@@ -737,7 +737,7 @@ sub fail
 
 sub upload
 {
-	my ($self, $paramname, $groupname) = _parse__args(@_);
+	my ($self, $paramname, $groupname) = _parse_args(@_);
 	
 	# retrieve file from parameters
 	my $file = $self->getparam($paramname, undef);
@@ -807,7 +807,7 @@ sub upload
 
 sub AUTOLOAD
 {
-	my ($self, @args) = _parse__args(@_);
+	my ($self, @args) = _parse_args(@_);
 	
 	my $function_name = $CGI::WebToolkit::AUTOLOAD;
 	   $function_name =~ s/.*\://g;
@@ -819,7 +819,7 @@ sub AUTOLOAD
 		# module function execution call
 		
 		# try to find subroutine in
-		$function_name =~ s/^\_//;
+		$function_name =~ s/^\_//;		
 		foreach my $module (@{$self->{'modules'}}) {
 			my $is_sub = 0;
 			eval('$is_sub = (defined &CGI::WebToolkit::Modules::'.ucfirst($module).'::'.$function_name.')');
@@ -1252,7 +1252,7 @@ sub _file_append
 
 # returns the args array with the
 # current CGI::WebToolkit instance as first argument
-sub _parse__args
+sub _parse_args
 {
 	if (scalar @_ && ref($_[0]) eq 'CGI::WebToolkit') {
 		return @_;
