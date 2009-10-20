@@ -24,7 +24,6 @@ t/private/javascripts/prototype-date-extensions.js
 t/private/javascripts/prototype.js
 t/private/javascripts/slider.js
 t/private/javascripts/tablekit.js
-t/private/modules/Alist.pm
 t/private/modules/Email.pm
 t/private/modules/StringUtils.pm
 t/private/schemas/core.sql

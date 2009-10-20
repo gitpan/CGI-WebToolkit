@@ -10,7 +10,7 @@ use Data::Dump qw(dump);
 use DBI;
 use Digest::MD5 qw(md5_hex);
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 our $WTK = undef;
 
@@ -31,7 +31,7 @@ sub new
 {
 	my ($class, @args) = @_;
 	my $self = bless {}, $class;
-	return $self->_init( @args );
+	return $self->__init( @args );
 }
 
 # ------------------------------------------------------------------------------
@@ -40,10 +40,10 @@ sub new
 
 sub handle
 {
-	my ($self) = _parse_args(@_);
+	my ($self) = __parse_args(@_);
 	
 	# clear cache
-	$self->_clear_cache()
+	$self->__clear_cache()
 		if $self->{'allowclearcache'} == 1
 			&& defined param($self->{'clearcacheparam'});
 	
@@ -60,16 +60,16 @@ sub handle
 		
 		my $result = $self->call( $function_name, @{$args} );
 		
-		_die("function '$function_name' returned invalid result.".
+		__die("function '$function_name' returned invalid result.".
 			 " Use the methods output() or followup() to generate a valid result.")
 			if ref $result ne 'HASH' || !exists $result->{'type'};
 		
 		if ($result->{'type'} eq 'output') {
 			if (exists $result->{'status'} && $result->{'status'} == 1) {
 				
-				_die("missing mimetype in result from function '$function_name'")
+				__die("missing mimetype in result from function '$function_name'")
 					unless exists $result->{'mimetype'};			
-				_die("missing content in result from function '$function_name'")
+				__die("missing content in result from function '$function_name'")
 					unless exists $result->{'content'};
 					
 				$mimetype = $result->{'mimetype'};
@@ -91,14 +91,14 @@ sub handle
 		}
 		elsif ($result->{'type'} eq 'followup') {
 			
-			_die("missing followup function name in result from function '$function_name'")
+			__die("missing followup function name in result from function '$function_name'")
 				unless exists $result->{'function_name'};
 
 			$function_name = $result->{'function_name'};
 			$args = $result->{'arguments'} if exists $result->{'arguments'};
 		}
 		else {
-			_die("function '$function_name' returned unknown type of result.".
+			__die("function '$function_name' returned unknown type of result.".
 			     " Use the methods output() or followup() to generate a valid result.");
 		}
 	}
@@ -125,14 +125,14 @@ sub handle
 		}
 	}
 
-	$self->_cleanup();
+	$self->__cleanup();
 	
 	return header( -type => $mimetype ).$message;
 }
 
 sub call
 {
-	my ($self, $function_name, @args) = _parse_args(@_);
+	my ($self, $function_name, @args) = __parse_args(@_);
 
 	# check if user is allowed to execute workflow function
 	$function_name = $self->{'entryaction'}
@@ -141,38 +141,38 @@ sub call
 	# check for cache entry
 	my $cachehash;
 	if ($self->{'cachetable'} ne '') {
-		$cachehash = $self->_get_cache_hash($function_name, @args);
-		my $result = $self->_load_cache($cachehash);
+		$cachehash = $self->__get_cache_hash($function_name, @args);
+		my $result = $self->__load_cache($cachehash);
 		return $result if defined $result;
 	}
 		
 	unless (exists $self->{"workflow_function_cache"}->{$function_name}) {
 	
 		my $function_filename 
-			= $self->_get_external_function_filename('workflows', $function_name);
+			= $self->__get_external_function_filename('workflows', $function_name);
 		
 		if (defined $function_filename) {
 			# load function ref. into cache
 			$self->{"workflow_function_cache"}->{$function_name}
-				= _load_file_as_subref($function_filename)
+				= __load_file_as_subref($function_filename)
 					unless exists $self->{'workflow_function_cache'}->{$function_name};
 		}
 		else {
 			# define error function
 			$self->{"workflow_function_cache"}->{$function_name}
-				= sub { _die("failed to load function '$function_name'") };
+				= sub { __die("failed to load function '$function_name'") };
 		}
 	}
 
 	# load library path for modules
 	my $libpath = $self->{'privatepath'}.'/modules';
 	eval('use lib "'.$libpath.'"');
-	_die("loading of library path '$libpath' failed: $@") if $@;
+	__die("loading of library path '$libpath' failed: $@") if $@;
 
 	# load all modules for workflow function
 	foreach my $module (@{$self->{'modules'}}) {
 		eval('use '.$module);
-		_die("loading of module '$module' failed: $@") if $@;
+		__die("loading of module '$module' failed: $@") if $@;
 	}
 	
 	# call workflow function
@@ -184,7 +184,7 @@ sub call
 	
 	# save result to cache
 	if ($self->{'cachetable'} ne '') {
-		$self->_save_cache($cachehash, $result);
+		$self->__save_cache($cachehash, $result);
 	}
 	
 	return $result;
@@ -192,7 +192,7 @@ sub call
 
 sub output
 {
-	my ($self, $status, $info, $content, $mimetype) = _parse_args(@_);
+	my ($self, $status, $info, $content, $mimetype) = __parse_args(@_);
 	$status   = 1 			unless defined $status;
 	$info     = 'ok' 		unless defined $info;
 	$content  = '' 			unless defined $content;
@@ -208,7 +208,7 @@ sub output
 
 sub followup
 {
-	my ($self, $function_name, @args) = _parse_args(@_);
+	my ($self, $function_name, @args) = __parse_args(@_);
 	return {
 		'type'          => 'followup',
 		'function_name' => $function_name,
@@ -220,7 +220,7 @@ sub followup
 
 sub get
 {
-	my ($self, $varname) = _parse_args(@_);
+	my ($self, $varname) = __parse_args(@_);
 	return 1 if $self->{'sessiontable'} eq '';
 	
 	if (exists $self->{'session'}->{$varname}) {
@@ -232,7 +232,7 @@ sub get
 
 sub set
 {
-	my ($self, $varname, $value) = _parse_args(@_);
+	my ($self, $varname, $value) = __parse_args(@_);
 	return 1 if $self->{'sessiontable'} eq '';
 	
 	$self->{'session'}->{$varname} = (defined $value ? $value : '');
@@ -241,7 +241,7 @@ sub set
 
 sub unset
 {
-	my ($self, $name) = _parse_args(@_);
+	my ($self, $name) = __parse_args(@_);
 	return 1 if $self->{'sessiontable'} eq '';
 	
 	delete $self->{'session'}->{$name}
@@ -254,15 +254,15 @@ sub unset
 
 sub fill
 {
-	my ($self, $template_name, $data) = _parse_args(@_);
+	my ($self, $template_name, $data) = __parse_args(@_);
 	my @data = (ref($data) eq 'ARRAY' ? @{$data} : ($data));
 
-	my $filename = $self->_get_external_function_filename( 'generators', $template_name );
+	my $filename = $self->__get_external_function_filename( 'generators', $template_name );
 
 	if (defined $filename) {
 		# load function ref. into cache
 		$self->{"template_function_cache"}->{$template_name}
-			= _load_file_as_subref($filename)
+			= __load_file_as_subref($filename)
 				unless exists $self->{'template_function_cache'}->{$template_name};
 	}
 	else {
@@ -279,14 +279,14 @@ sub fill
 		
 		# look into themes for file
 		foreach my $theme (@fallback_themes) {
-			$filename = _identifier_to_filename(
+			$filename = __identifier_to_filename(
 							$self->{'privatepath'}.'/templates/'.$theme.'/',
 							$template_name, '.html');
 			last if -f $filename;
 		}
 
 		# load file
-		open TMPLFILE, '<'.$filename or _die("failed to open file '$filename': $!");
+		open TMPLFILE, '<'.$filename or __die("failed to open file '$filename': $!");
 		my $content = join '', <TMPLFILE>;
 		close TMPLFILE;
 		
@@ -298,11 +298,11 @@ sub fill
 				foreach my $data (@data) {
 					my $tmpl = $content;					
 					# expand macros
-					$self->_expand_macros(\$tmpl) if $self->{'allowmacros'} == 1;
+					$self->__expand_macros(\$tmpl) if $self->{'allowmacros'} == 1;
 					# replace variables
-					_replace_placeholders(\$tmpl, $data);
+					__replace_placeholders(\$tmpl, $data);
 					# replace common variables
-					_replace_placeholders(\$tmpl, $self->{'common_placeholders'});
+					__replace_placeholders(\$tmpl, $self->{'common_placeholders'});
 					$result .= $tmpl;
 				}
 				return $result;
@@ -319,7 +319,7 @@ sub fill
 
 sub _
 {
-	my ($self, $phrase, $language) = _parse_args(@_);
+	my ($self, $phrase, $language) = __parse_args(@_);
 	return '' unless defined $phrase;
 
 	return $phrase
@@ -341,7 +341,7 @@ sub _
 		}
 		else {
 			# look for translation
-			my $translation = _find_translation($row->{'translations'}, $language);
+			my $translation = __find_translation($row->{'translations'}, $language);
 			return (defined $translation ? $translation : $phrase);
 		}
 	}
@@ -354,7 +354,7 @@ sub _
 
 sub lang
 {
-	my ($self, $language) = _parse_args(@_);
+	my ($self, $language) = __parse_args(@_);
 	if (defined $language) {
 		# set
 		$self->set($language);
@@ -368,11 +368,11 @@ sub lang
 
 sub translate
 {
-	my ($self, @pairs) = _parse_args(@_);
+	my ($self, @pairs) = __parse_args(@_);
 	return 0
 		if $self->{'phrasetable'} eq '';
 	
-	_die("translate() expects language/phrase pairs as parameters")
+	__die("translate() expects language/phrase pairs as parameters")
 		if scalar(@pairs) % 2 == 1 || scalar(@pairs) < 4;
 
 	# erease any bad characters
@@ -396,7 +396,7 @@ sub translate
 
 	if (my $row = $query->fetchrow_hashref()) {
 		# update
-		my $translations = _find_translation($row->{'translations'});
+		my $translations = __find_translation($row->{'translations'});
 		foreach my $lang (keys %phrases) {
 			$translations->{$lang} = $phrases{$lang};
 		}
@@ -427,8 +427,8 @@ sub translate
 
 sub find
 {
-	my ($self, %options) = _parse_args(@_);
-	my $opts = _parse_params( \%options,
+	my ($self, %options) = __parse_args(@_);
+	my $opts = __parse_params( \%options,
 		{
 			tables 		=> [],
 			where 		=> {},
@@ -442,19 +442,19 @@ sub find
 			sortdir		=> 'asc', # 'asc' or 'desc'
 		});
 
-	my @tables = map { $self->_quotename($_) } @{$opts->{'tables'}};
+	my @tables = map { $self->__quotename($_) } @{$opts->{'tables'}};
 
-	my @columns = map { $self->_quotename($_) } @{$opts->{'columns'}};
+	my @columns = map { $self->__quotename($_) } @{$opts->{'columns'}};
 
 	my @joins =
 		map {
-			$self->_quotename($_).' = '.$self->_quotename($opts->{'joins'}->{$_});
+			$self->__quotename($_).' = '.$self->__quotename($opts->{'joins'}->{$_});
 		}
 		keys %{$opts->{'joins'}};
 
-	my @group = map { $self->_quotename($_) } @{$opts->{'group'}};
+	my @group = map { $self->__quotename($_) } @{$opts->{'group'}};
 
-	my @order = map { $self->_quotename($_) } @{$opts->{'order'}};
+	my @order = map { $self->__quotename($_) } @{$opts->{'order'}};
 	
 	my $sql
 		= 'SELECT'
@@ -463,10 +463,10 @@ sub find
 		.' FROM '.join(', ', @tables)
 		.' WHERE '
 		.(scalar keys %{$opts->{'where'}} ?
-			$self->_make_sql_where_clause($opts->{'where'})
+			$self->__make_sql_where_clause($opts->{'where'})
 			: '1')
 		.(scalar keys %{$opts->{'wherelike'}} ?
-			' AND '.$self->_make_sql_where_clause($opts->{'wherelike'}, 1)
+			' AND '.$self->__make_sql_where_clause($opts->{'wherelike'}, 1)
 			: '')
 		.(scalar @joins ? ' AND '.join(' AND ', @joins) : '')
 		.(scalar @group ? ' GROUP BY '.join(', ', @group) : '')
@@ -478,8 +478,8 @@ sub find
 
 sub create
 {
-	my ($self, %options) = _parse_args(@_);
-	my $opts = _parse_params( \%options,
+	my ($self, %options) = __parse_args(@_);
+	my $opts = __parse_params( \%options,
 		{
 			table => undef,
 			row => {},
@@ -488,14 +488,14 @@ sub create
 	my @columns;
 	my @values;
 	map {
-		push @columns, $self->_quotename($_);
-		push @values,  $self->_quote($opts->{'row'}->{$_});
+		push @columns, $self->__quotename($_);
+		push @values,  $self->__quote($opts->{'row'}->{$_});
 	}
 	keys %{$opts->{'row'}};
 
 	my $sql
 		= 'INSERT'
-			.' INTO '.$self->_quotename($opts->{'table'})
+			.' INTO '.$self->__quotename($opts->{'table'})
 			.' ('.join(', ', @columns).')'
 			.' VALUES ('.join(', ', @values).')';
 
@@ -505,8 +505,8 @@ sub create
 
 sub update
 {
-	my ($self, %options) = _parse_args(@_);
-	my $opts = _parse_params( \%options,
+	my ($self, %options) = __parse_args(@_);
+	my $opts = __parse_params( \%options,
 		{
 			table => '',
 			set => {},
@@ -516,20 +516,20 @@ sub update
 
 	my @sets =
 		map {
-			$self->_quotename($_).' = '.$self->_quote($opts->{'set'}->{$_});
+			$self->__quotename($_).' = '.$self->__quote($opts->{'set'}->{$_});
 		}
 		keys %{$opts->{'set'}};
 
 	my $sql
 		= 'UPDATE'
-			.' '.$self->_quotename($opts->{'table'})
+			.' '.$self->__quotename($opts->{'table'})
 			.' SET '.join(', ', @sets)
 			.' WHERE '
 			.(scalar keys %{$opts->{'where'}} ?
-				$self->_make_sql_where_clause($opts->{'where'})
+				$self->__make_sql_where_clause($opts->{'where'})
 				: '1')
 			.(scalar keys %{$opts->{'wherelike'}} ?
-				' AND '.$self->_make_sql_where_clause($opts->{'wherelike'}, 1)
+				' AND '.$self->__make_sql_where_clause($opts->{'wherelike'}, 1)
 				: '');
 
 	return $self->query($sql);
@@ -537,8 +537,8 @@ sub update
 
 sub remove
 {
-	my ($self, %options) = _parse_args(@_);
-	my $opts = _parse_params( \%options,
+	my ($self, %options) = __parse_args(@_);
+	my $opts = __parse_params( \%options,
 		{
 			table => '',
 			where => {},
@@ -547,13 +547,13 @@ sub remove
 
 	my $sql
 		= 'DELETE'
-			.' FROM '.$self->_quotename($opts->{'table'})
+			.' FROM '.$self->__quotename($opts->{'table'})
 			.' WHERE '
 			.(scalar keys %{$opts->{'where'}} ?
-				$self->_make_sql_where_clause($opts->{'where'})
+				$self->__make_sql_where_clause($opts->{'where'})
 				: '1')
 			.(scalar keys %{$opts->{'wherelike'}} ?
-				' AND '.$self->_make_sql_where_clause($opts->{'wherelike'}, 1)
+				' AND '.$self->__make_sql_where_clause($opts->{'wherelike'}, 1)
 				: '');
 
 	return $self->query($sql);
@@ -561,13 +561,13 @@ sub remove
 
 sub load
 {
-	my ($self, $group, $recordset, $tablename) = _parse_args(@_);
+	my ($self, $group, $recordset, $tablename) = __parse_args(@_);
 	
-	my $records	= _load_data_file($self->{'privatepath'}.'/data/'.$group.'/'.$recordset.'.txt');
+	my $records	= __load_data_file($self->{'privatepath'}.'/data/'.$group.'/'.$recordset.'.txt');
 	
 	my $inserted = 0;
 	foreach my $record (@{$records}) {
-		_die("record does not have an id field, in data file '$group/$recordset'")
+		__die("record does not have an id field, in data file '$group/$recordset'")
 			unless exists $record->{'id'};
 		
 		my $query
@@ -594,11 +594,11 @@ sub load
 
 sub query
 {
-	my ($self, $sql) = _parse_args(@_);
-	$self->_connect_to_db();
+	my ($self, $sql) = __parse_args(@_);
+	$self->__connect_to_db();
 	my $query = $self->{'dbh'}->prepare($sql);
 	$query->execute()
-		or _die('the query ['.$sql.'] failed: '.DBI->errstr());
+		or __die('the query ['.$sql.'] failed: '.DBI->errstr());
 	return $query;
 }
 
@@ -606,7 +606,7 @@ sub query
 
 sub getparam
 {
-	my ($self, $name, $default, $regex) = _parse_args(@_);
+	my ($self, $name, $default, $regex) = __parse_args(@_);
 	$regex = '.*' unless defined $regex;
 	my $value = param($name);
 	return (defined $value && $value =~ /$regex/ ? $value : $default);
@@ -616,7 +616,7 @@ sub getparam
 
 sub login
 {
-	my ($self, $loginname, $password) = _parse_args(@_);
+	my ($self, $loginname, $password) = __parse_args(@_);
 	return 1 if $self->{'usertable'} eq '';
 
 	return 0 unless defined $loginname;
@@ -653,7 +653,7 @@ sub login
 
 sub logout
 {
-	my ($self) = _parse_args(@_);
+	my ($self) = __parse_args(@_);
 	return 1 if $self->{'usertable'} eq '';
 
 	$self->unset('user');
@@ -667,14 +667,14 @@ sub allowed
 	my ($self,
 		$function_name,	# workflow function name
 		$loginname,		# loginname of user
-		) = _parse_args(@_);
+		) = __parse_args(@_);
 
 	return 1 if $self->{'accessconfig'} eq '';
 
 	# load access config from <privatepath>/accessconfigs/<name>.txt
 	# $mappings = { <regex> => <functionname>, ... }
 	my $mappings
-		= _load_config_file(
+		= __load_config_file(
 			$self->{'privatepath'}.'/accessconfigs/'.$self->{'accessconfig'}.'.txt');
 
 	# determine and call appropriate access check function(s)
@@ -683,12 +683,12 @@ sub allowed
 		if ($function_name =~ /$rgx/) {
 			my $check_function_name = $mappings->{$rgx};
 			my $filename =
-				$self->_get_external_function_filename(
+				$self->__get_external_function_filename(
 					'accesschecks', $check_function_name);
 
 			# load function as subroutine
 			$self->{"access_function_cache"}->{$check_function_name}
-				= _load_file_as_subref($filename)
+				= __load_file_as_subref($filename)
 					unless exists $self->{"access_function_cache"}->{$check_function_name};
 
 			my $check_function = $self->{"access_function_cache"}->{$check_function_name};
@@ -704,7 +704,7 @@ sub allowed
 
 sub logmsg
 {
-	my ($self, $msg, $priority) = _parse_args(@_);
+	my ($self, $msg, $priority) = __parse_args(@_);
 	
 	$msg .= "\r\n" if $msg !~ /\r?\n$/;
 	
@@ -716,12 +716,12 @@ sub logmsg
 	
 	# log to priority-logfile
 	my $logfile = $self->{'privatepath'}.'/logs/'.uc($priority).'.txt';
-	_file_append($logfile, $msg);
+	__file_append($logfile, $msg);
 	
 	if (defined $self->{'current_workflow_function'}) {
 		# log to workflow-function-specific logfile as well
 		my $logfile2 = $self->{'privatepath'}.'/logs/'.uc($self->{'current_workflow_function'}).'.txt';
-		_file_append($logfile2, $msg);
+		__file_append($logfile2, $msg);
 	}
 }
 
@@ -729,20 +729,20 @@ sub logmsg
 
 sub fail
 {
-	my ($self, $msg) = _parse_args(@_);
-	_die($msg);
+	my ($self, $msg) = __parse_args(@_);
+	__die($msg);
 }
 
 # ------------------------------------------------------------------------------
 
 sub upload
 {
-	my ($self, $paramname, $groupname) = _parse_args(@_);
+	my ($self, $paramname, $groupname) = __parse_args(@_);
 	
 	# retrieve file from parameters
 	my $file = $self->getparam($paramname, undef);
 
-	_die("cannot retrieve upload via unknown parameter '$paramname'")
+	__die("cannot retrieve upload via unknown parameter '$paramname'")
 		unless defined $file;
 
 	my $now = time();
@@ -758,7 +758,7 @@ sub upload
 
 	# write data to file
 	open UPLOAD, '>'.$filepath.$filename
-		or _die("failed to write upload to file '$filepath$filename': $!");
+		or __die("failed to write upload to file '$filepath$filename': $!");
 
 	# Dateien in den Binaer-Modus schalten
 	binmode $file;
@@ -807,7 +807,7 @@ sub upload
 
 sub AUTOLOAD
 {
-	my ($self, @args) = _parse_args(@_);
+	my ($self, @args) = __parse_args(@_);
 	
 	my $function_name = $CGI::WebToolkit::AUTOLOAD;
 	   $function_name =~ s/.*\://g;
@@ -815,7 +815,7 @@ sub AUTOLOAD
 	if ($function_name eq 'DESTROY') {
 		return SUPER::DESTROY(@args);
 	}
-	elsif ($function_name =~ /^\_/) {
+	elsif ($function_name =~ /^\_[^\_]/) {
 		# module function execution call
 		
 		# try to find subroutine in
@@ -823,16 +823,16 @@ sub AUTOLOAD
 		foreach my $module (@{$self->{'modules'}}) {
 			my $is_sub = 0;
 			eval('$is_sub = (defined &CGI::WebToolkit::Modules::'.ucfirst($module).'::'.$function_name.')');
-			_die("eval failed: $@") if $@;
+			__die("eval failed: $@") if $@;
 			if ($is_sub) {
 				# call subroutine
 				my @result;
 				eval('@result = CGI::WebToolkit::Modules::'.ucfirst($module).'::'.$function_name.'($self, @args)');
-				_die("eval for subroutine call failed: $@") if $@;
+				__die("eval for subroutine call failed: $@") if $@;
 				return (wantarray ? @result : (scalar @result ? $result[0] : undef));
 			}
 		}
-		_die("could not find subroutine named 'CGI::WebToolkit::Modules::*::".$function_name."'");
+		__die("could not find subroutine named 'CGI::WebToolkit::Modules::*::".$function_name."'");
 	}
 	elsif ($function_name =~ /^[A-Z]/) {
 		# template loading call
@@ -857,7 +857,7 @@ sub AUTOLOAD
 			);
 	}
 	else {
-		_die("Unknown function/method called '$function_name'.");
+		__die("Unknown function/method called '$function_name'.");
 	}
 }
 
@@ -865,24 +865,24 @@ sub AUTOLOAD
 # ------------------------------------------------------------------------------
 # cleanup
 
-sub _cleanup
+sub __cleanup
 {
 	my ($self) = @_;
 	
-	$self->_save_session();
-	$self->_disconnect_from_db();
+	$self->__save_session();
+	$self->__disconnect_from_db();
 }
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 # internal helper functions/methods
 
-sub _expand_macros
+sub __expand_macros
 {
 	my ($self, $stringref) = @_;
 	my $string = ${$stringref};
 	
-	my $tokens = _tokenize_xml($string);
+	my $tokens = __tokenize_xml($string);
 	
 	# the generated tokens are now beeing expanded
 
@@ -902,13 +902,13 @@ sub _expand_macros
 			my ($type, $name, $attribs) = @{$token};
 			if ($type eq 'start' || $type eq 'single') {
 				
-				my $data = _attribs_to_hash($attribs);
+				my $data = __attribs_to_hash($attribs);
 				$data->{'content'} = '';
 				
 				my $t_span = 1; # assume a "single" tag
 				if ($type eq 'start') {
 					# find end tag
-					$t_span = _get_token_span($tokens, $t);
+					$t_span = __get_token_span($tokens, $t);
 					unless (defined $t_span) {
 						# if no end tag: tag end is end of tokens
 						$t_span = scalar(@{$tokens}) - $t;
@@ -920,7 +920,7 @@ sub _expand_macros
 					pop @subtokens;
 
 					# convert sub-tokenlist back to xml
-					$data->{'content'} = _render_tokens(\@subtokens);
+					$data->{'content'} = __render_tokens(\@subtokens);
 				}
 				elsif ($type eq 'single') {
 					splice @{$tokens}, $t, 1;
@@ -930,7 +930,7 @@ sub _expand_macros
 				my $filled = $self->fill($name, $data);
 				
 				# tokenize template
-				my $sub_tokens = _tokenize_xml($filled);
+				my $sub_tokens = __tokenize_xml($filled);
 
 				# replace tag with sub-tokenlist
 				splice @{$tokens}, $t, 0, @{$sub_tokens};
@@ -945,14 +945,14 @@ sub _expand_macros
 			}
 		}
 		$abort ++;
-		_die("macro expansion ran into endless loop.") if $abort == 100;
+		__die("macro expansion ran into endless loop.") if $abort == 100;
 	}
 
 	${$stringref} = $parsed;
 	return 1;	
 }
 
-sub _render_tokens
+sub __render_tokens
 {
 	my ($tokens) = @_;
 	my $string = '';
@@ -970,7 +970,7 @@ sub _render_tokens
 	return $string;
 }
 
-sub _attribs_to_hash
+sub __attribs_to_hash
 {
 	my ($attribs) = @_;
 	my %hash;
@@ -984,7 +984,7 @@ sub _attribs_to_hash
 	return \%hash;
 }
 
-sub _get_token_span
+sub __get_token_span
 {
 	my ($tokens, $t) = @_;
 	my $found = 0;
@@ -1012,7 +1012,7 @@ sub _get_token_span
 	return $span;
 }
 
-sub _dump_tokens
+sub __dump_tokens
 {
 	my ($tokens) = @_;
 	my $s = "[\n";
@@ -1035,7 +1035,7 @@ sub _dump_tokens
 	return $s."]\n";
 }
 
-sub _tokenize_xml
+sub __tokenize_xml
 {
 	my ($string) = @_;
 	
@@ -1087,7 +1087,7 @@ sub _tokenize_xml
 	return \@tokens;
 }
 
-sub _load_data_file
+sub __load_data_file
 {
 	my ($datafilename) = @_;
 	
@@ -1140,11 +1140,11 @@ sub _load_data_file
 		return \@records;
 	}
 	else {
-		_die("failed to open file '$datafilename': no file or not readable");
+		__die("failed to open file '$datafilename': no file or not readable");
 	}
 }
 
-sub _parse_translations
+sub __parse_translations
 {
 	my ($translations) = @_;
 	my %phrases;
@@ -1155,7 +1155,7 @@ sub _parse_translations
 	return \%phrases;
 }
 
-sub _find_translation
+sub __find_translation
 {
 	my ($translations, $find_language) = @_;
 	foreach my $translation (split /\n/, @{$translations}) {
@@ -1166,7 +1166,7 @@ sub _find_translation
 	return undef;
 }
 
-sub _get_cache_hash
+sub __get_cache_hash
 {
 	my ($self, $function_name, @args) = @_;
 
@@ -1177,30 +1177,30 @@ sub _get_cache_hash
 	if (-f $cfgfile) {
 		# open cache config
 		my $cfg
-			= _read_config_file($cfgfile, {
+			= __read_config_file($cfgfile, {
 					'session'  => [],
 					'params'   => [],
 					'lifetime' => 3600,
 				});
 				
-		map { $string .= _serialize($self->get($_)) } @{$cfg->{'session'}};
-		map { $string .= _serialize(param($_))      } @{$cfg->{'params'}};
-		$string .= _serialize(\@args);
+		map { $string .= __serialize($self->get($_)) } @{$cfg->{'session'}};
+		map { $string .= __serialize(param($_))      } @{$cfg->{'params'}};
+		$string .= __serialize(\@args);
 	}
 	else {
 		# hash is created out of complete session, post/get and arguments
 		
 		# commented, because makes cache renew too often...
-		#map { $string .= _serialize($self->get($_)) } keys %{$self->{'session'}};
+		#map { $string .= __serialize($self->get($_)) } keys %{$self->{'session'}};
 		
-		map { $string .= _serialize(param($_))      } param();
-		$string .= _serialize(\@args);
+		map { $string .= __serialize(param($_))      } param();
+		$string .= __serialize(\@args);
 	}
 	
 	return md5_hex($string);
 }
 
-sub _load_cache
+sub __load_cache
 {
 	my ($self, $cachehash) = @_;
 	my $query
@@ -1211,21 +1211,21 @@ sub _load_cache
 		);
 		
 	if (my $entry = $query->fetchrow_hashref()) {
-		return _deserialize($entry->{'content'});
+		return __deserialize($entry->{'content'});
 	}
 	else {
 		return undef;
 	}
 }
 
-sub _save_cache
+sub __save_cache
 {
 	my ($self, $cachehash, $data) = @_;
 	
 	$self->create(
 		-table => $self->{'cachetable'},
 		-row   => {
-			'content' 	  => _serialize($data),
+			'content' 	  => __serialize($data),
 			'hash' 		  => $cachehash,
 			'last_update' => time(),
 		},
@@ -1234,17 +1234,17 @@ sub _save_cache
 	return 1;
 }
 
-sub _clear_cache
+sub __clear_cache
 {
 	my ($self) = @_;
 	return 1 if $self->{'cachetable'} eq '';
 	$self->remove( -table => $self->{'cachetable'} );
 }
 
-sub _file_append
+sub __file_append
 {
 	my ($filename, $text) = @_;
-	open OUTFILE, '>>'.$filename or _die("failed to open file '$filename': $!");
+	open OUTFILE, '>>'.$filename or __die("failed to open file '$filename': $!");
 	print OUTFILE $text;
 	close OUTFILE;
 	return 1;
@@ -1252,7 +1252,7 @@ sub _file_append
 
 # returns the args array with the
 # current CGI::WebToolkit instance as first argument
-sub _parse_args
+sub __parse_args
 {
 	if (scalar @_ && ref($_[0]) eq 'CGI::WebToolkit') {
 		return @_;
@@ -1261,7 +1261,7 @@ sub _parse_args
 	}
 }
 
-sub _replace_placeholders
+sub __replace_placeholders
 {
 	my ($stringref, $hash) = @_;
 	foreach my $key (keys %{$hash}) {
@@ -1272,15 +1272,15 @@ sub _replace_placeholders
 	return undef;
 }
 
-sub _make_sql_where_clause
+sub __make_sql_where_clause
 {
 	my ($self, $where, $use_like) = @_;
 	$use_like = 0 unless defined $use_like;
 	
 	my @parts =
 		map {
-			my $fieldname  = $self->_quotename($_);
-			my $fieldvalue = $self->_quote($where->{$_});
+			my $fieldname  = $self->__quotename($_);
+			my $fieldvalue = $self->__quote($where->{$_});
 			
 			my $s  = $fieldname;
 			   $s .= ($use_like == 1 ? ' LIKE ' : ' = ');
@@ -1292,20 +1292,20 @@ sub _make_sql_where_clause
 	return join(' AND ', @parts);
 }
 
-sub _quote
+sub __quote
 {
 	my ($self, @args) = @_;
-	$self->_connect_to_db();
+	$self->__connect_to_db();
 	
 	return $self->{'dbh'}->quote(@args)
-		or _die('quote failed: '.DBI->errstr());
+		or __die('quote failed: '.DBI->errstr());
 }
 
 # escapes a CGI::WebToolkit field identifier, e.g. "mytable.myfield" or "myfield" etc.
-sub _quotename
+sub __quotename
 {
 	my ($self, $fieldname) = @_;
-	$self->_connect_to_db();
+	$self->__connect_to_db();
 
 	my @parts = split /\./, $fieldname;
 	
@@ -1323,7 +1323,7 @@ sub _quotename
 	return $quoted;
 }
 
-sub _get_external_function_filename
+sub __get_external_function_filename
 {
 	my ($self,
 		$type,	# "functions" or "templates" or other subdirectory in <privatepath>
@@ -1334,7 +1334,7 @@ sub _get_external_function_filename
 	# untaint name
 	$name =~ s/^(([a-z\_]+)(\.([a-z\_]+))*).*$/$1/;
 
-	my $filename = _identifier_to_filename(
+	my $filename = __identifier_to_filename(
 						$self->{'privatepath'}.'/'.$type.'/', $name, '.pl');
 
 	if (-f $filename) {
@@ -1345,7 +1345,7 @@ sub _get_external_function_filename
 }
 
 # bla.bla.bla -> bla/bla/bla
-sub _identifier_to_filename
+sub __identifier_to_filename
 {
 	my ($prefix, $identifier, $suffix) = @_;
 	$suffix = '' unless defined $suffix;
@@ -1358,27 +1358,27 @@ sub _identifier_to_filename
 
 # loads an external file into an anonymous perl function ref.
 # and returns this ref.
-sub _load_file_as_subref
+sub __load_file_as_subref
 {
 	my ($filename) = @_;
 	
-	_die("cannot load file '$filename': does not exist.")  unless -f $filename;
-	_die("cannot load file '$filename': is not readable.") unless -r $filename;
+	__die("cannot load file '$filename': does not exist.")  unless -f $filename;
+	__die("cannot load file '$filename': is not readable.") unless -r $filename;
 	
 	my $subref = undef;
-	open PERLFILE, '<'.$filename or _die("failed to open file '$filename': $!");
+	open PERLFILE, '<'.$filename or __die("failed to open file '$filename': $!");
 	my $code = join '', <PERLFILE>;
 	   $code =~ /^(.*).*$/sm; # untaint
 	   $code = "$1";
 	   $code = '$subref = sub { my ($wtk, @args) = @_;'."\n".$code."\n".'}';
 	close PERLFILE;
 	eval($code);
-	_die("function (file '$filename') failed to load with error: $@") if $@;
+	__die("function (file '$filename') failed to load with error: $@") if $@;
 	
 	return $subref;
 }
 
-sub _load_session
+sub __load_session
 {
 	my ($self) = @_;
 	return 1 if $self->{'sessiontable'} eq '';
@@ -1400,7 +1400,7 @@ sub _load_session
 	my $sessionstart = 0;
 	if (my $session = $query->fetchrow_hashref()) {
 		if (time() - $session->{'last_update'} < $self->{'sessiontimeout'}) {
-			$self->{'session'} = _deserialize($session->{'content'});
+			$self->{'session'} = __deserialize($session->{'content'});
 		} else {
 			# session timed out
 			$self->{'session_id'} = md5_hex( time() ); # gets new session id!
@@ -1423,7 +1423,7 @@ sub _load_session
 		if $sessionstart && $self->{'onsessionstart'} ne '';
 }
 
-sub _save_session
+sub __save_session
 {
 	my ($self) = @_;
 	return 1 if $self->{'sessiontable'} eq '';
@@ -1440,7 +1440,7 @@ sub _save_session
 		$self->update(
 			-table => $self->{'sessiontable'},
 			-set => {
-				'content' => _serialize($self->{'session'}),
+				'content' => __serialize($self->{'session'}),
 				'last_update' => time(),
 			},
 			-where => {	'session_id' => $self->{'session_id'} },
@@ -1452,30 +1452,30 @@ sub _save_session
 			-table => $self->{'sessiontable'},
 			-row => { 
 				'session_id' => $self->{'session_id'},
-				'content' => _serialize($self->{'session'}),
+				'content' => __serialize($self->{'session'}),
 				'last_update' => time(),
 			},
 		);
 	}
 }
 
-sub _serialize
+sub __serialize
 {
 	my ($structure) = @_;
 	return dump($structure);
 }
 
-sub _deserialize
+sub __deserialize
 {
 	my ($string) = @_;
 	return {} unless length $string;
 	my $structure = undef;
 	eval('$structure = '.$string);
-	_die("deserialization of string failed: $@") if $@;
+	__die("deserialization of string failed: $@") if $@;
 	return $structure;
 }
 
-sub _connect_to_db
+sub __connect_to_db
 {
     my ($self) = @_;
 	return 1 if defined $self->{'dbh'} && ref($self->{'dbh'}) eq 'DBI';
@@ -1490,19 +1490,19 @@ sub _connect_to_db
 				#AutoCommit => 1,
 				#PrintWarn  => 1,
 			})
-	    or _die("Could not connect to database");
+	    or __die("Could not connect to database");
     
     return 1;
 }
 
-sub _disconnect_from_db
+sub __disconnect_from_db
 {
 	my ($self) = @_;
 	
 	return $self->{'dbh'}->disconnect();
 }
 
-sub _init
+sub __init
 {
 	my ($self, %options) = @_;
 	
@@ -1575,11 +1575,11 @@ sub _init
 		my $name = lc $key;
 		   $name =~ s/^\-*//;
 		if ($name eq 'config') {
-			$cfgopts = _load_config_file( $options{$key}, $optdefaults );
+			$cfgopts = __load_config_file( $options{$key}, $optdefaults );
 		}
 	}
 	
-	my $opts = _parse_params( \%options, $cfgopts );
+	my $opts = __parse_params( \%options, $cfgopts );
 	map { $self->{$_} = $opts->{$_} } keys %{$opts};
 	
 	# add 'default' theme as last fallback if not already added
@@ -1596,7 +1596,7 @@ sub _init
 	$self->{"template_function_cache"} = {};
 	$self->{"access_function_cache"}   = {};
 	
-	$self->_load_session();
+	$self->__load_session();
 	
 	# common placeholders
 	$self->{'common_placeholders'} = {
@@ -1624,7 +1624,7 @@ sub _init
 	return $self;
 }
 
-sub _load_config_file
+sub __load_config_file
 {
 	my ($filename, $defaults) = @_;
 	
@@ -1672,13 +1672,13 @@ sub _load_config_file
 }
 
 # dumps data to browser
-sub _dd
+sub __dd
 {
 	print header();
 	print '<pre>'.dump($_[0]).'</pre><br/>';
 }
 
-sub _parse_params
+sub __parse_params
 {
 	my ($params, $defaults) = @_;
 	my $values = {};
@@ -1694,7 +1694,7 @@ sub _parse_params
 	return $values;
 }
 
-sub _die
+sub __die
 {
 	my ($msg) = @_;
 	print header();

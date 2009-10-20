@@ -1,8 +1,5 @@
 .DS_Store
 Changes
-info/CGI-WebToolkit.html
-info/POD_CPAN.css
-info/Todo.txt
 lib/CGI/WebToolkit.pm
 makedoc.sh
 MANIFEST			This list of files
