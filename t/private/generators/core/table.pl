@@ -5,7 +5,7 @@ my $data_defaults = {
 	'headlines' => [],
 	'transformers' => [],
 };
-my $params = CGI::WebToolkit::_parse_params( $data, $data_defaults );
+my $params = CGI::WebToolkit::__parse_params( $data, $data_defaults );
 
 my $content      = $params->{'content'};
 my $headlines    = $params->{'headlines'};

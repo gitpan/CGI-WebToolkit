@@ -5,7 +5,7 @@ my $data_defaults = {
 	'widths' => '[100%]',
 	'columns' => [],
 };
-my $params = CGI::WebToolkit::_parse_params( $data, $data_defaults );
+my $params = CGI::WebToolkit::__parse_params( $data, $data_defaults );
 
 my $class = $params->{'class'};
 

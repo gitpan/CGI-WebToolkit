@@ -1,5 +1,6 @@
 \.tar\.gz$
 \.svn
+\.DS_Store
 _build
 Build
 blib
@@ -8,5 +9,6 @@ multi
 .*[Mm]y[Cc]ontacts.*
 .*[Ee][Gg]uitr.*
 .*[Aa]list.*
+.*[Ss]tatemint.*
 .*phpminiadmin.*
 .*info\/.*

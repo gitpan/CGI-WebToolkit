@@ -10,7 +10,7 @@ use Data::Dump qw(dump);
 use DBI;
 use Digest::MD5 qw(md5_hex);
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 our $WTK = undef;
 
@@ -257,12 +257,19 @@ sub fill
 	my ($self, $template_name, $data) = __parse_args(@_);
 	my @data = (ref($data) eq 'ARRAY' ? @{$data} : ($data));
 
-	my $filename = $self->__get_external_function_filename( 'generators', $template_name );
+	my $filename1 = $self->__get_external_function_filename( 'generators', $template_name );
+	my $filename2 = $self->__get_external_function_filename( 'generators', 'core.'.$template_name );
 
-	if (defined $filename) {
+	if (defined $filename1) {
 		# load function ref. into cache
 		$self->{"template_function_cache"}->{$template_name}
-			= __load_file_as_subref($filename)
+			= __load_file_as_subref($filename1)
+				unless exists $self->{'template_function_cache'}->{$template_name};
+	}
+	elsif (defined $filename2) {
+		# load function ref. into cache
+		$self->{"template_function_cache"}->{$template_name}
+			= __load_file_as_subref($filename2)
 				unless exists $self->{'template_function_cache'}->{$template_name};
 	}
 	else {
@@ -278,6 +285,7 @@ sub fill
 		}
 		
 		# look into themes for file
+		my $filename;
 		foreach my $theme (@fallback_themes) {
 			$filename = __identifier_to_filename(
 							$self->{'privatepath'}.'/templates/'.$theme.'/',
@@ -1039,15 +1047,18 @@ sub __tokenize_xml
 {
 	my ($string) = @_;
 	
+	# remove comments
+	$string =~ s/<!(?:--(?:[^-]*|-[^-]+)*--\s*)>//sg;
+	
 	# this regex parses an xml tag (sloppy...)
-	my $tagregex = '^(\/?)([a-zA-Z0-9\:\_\.]+)([\s\t\n\r]*)([^\>]*[^\/])?(\/?)\>(.*)$';
+	my $tagregex = '^(\/?)([a-zA-Z0-9\:\_\.]+)([\s\t\n\r]*)([^\>]*[^\/])?(\/?)>(.*)$';
 	
 	# what follows is actually a very rudimentary tokenizer
 	# that splits the source into an array of tokens, either
 	# tag (start-tag, end-tag or single-tag) and strings
 
 	my @tokens = ('');
-	foreach my $tag (split /\</s, $string) {
+	foreach my $tag (split /</s, $string) {
 		
 		if ($tag =~ /$tagregex/s) {
 			my ($is_end, $tagname, $space, $attribs, $is_single, $rest)
@@ -1158,8 +1169,8 @@ sub __parse_translations
 sub __find_translation
 {
 	my ($translations, $find_language) = @_;
-	foreach my $translation (split /\n/, @{$translations}) {
-		my ($language, $phrase) =~ /^([^\:]+)\:(.*)$/;
+	foreach my $translation (split /\n\r?/, $translations) {
+		my ($language, $phrase) = $translation =~ /^([^\:]+)\:(.*)$/;
 		return $phrase
 			if $language eq $find_language;
 	}
@@ -1756,6 +1767,7 @@ following common tasks in web application development:
 
 =back
 
+There is a tutorial: CGI::WebToolkit::Tutorial.
 
 
 =head2 Directory structure
@@ -1770,8 +1782,10 @@ The directory structure of the B<public directory> as required
 by CGI::WebToolkit, usually this would go somewhere in the htdocs directory
 on the server:
 
+	core/
 	themes/
 	  <themename>/
+	uploads/
 
 The directory structure of the B<private directory> as required by
 CGI::WebToolkit, usually this would go B<outside> of the web-accessable area
@@ -1896,10 +1910,10 @@ An example SQL statement (for MySQL) that will create an appropriate
 database session table:
 
 	create table `session` (
-	  `id` int not null auto_increment primary key,
-	  `session_id` varchar(32),
-	  `content` text,
-	  `last_update` int(16)
+	  `id` int(11) not null auto_increment primary key,
+	  `session_id` varchar(32) not null,
+	  `content` text not null,
+	  `last_update` int(16) not null
 	);
 
 To deactivate sessions, leave this option empty, which is also
@@ -1917,10 +1931,10 @@ An example SQL statement (for MySQL) that will create an appropriate
 database user table:
 
 	create table `user` (
-	  `id` int not null auto_increment primary key,
-	  `loginname` varchar(255),
-	  `password` varchar(32),
-	  `language` varchar(5)
+	  `id` int(11) not null auto_increment primary key,
+	  `loginname` varchar(255) not null,
+	  `password` varchar(32) not null,
+	  `language` varchar(5) not null
 	);
 
 If you do not need this feature, just leave the tablename empty,
@@ -1942,10 +1956,10 @@ An example SQL statement (for MySQL) that will create an appropriate
 database cache table:
 
 	create table `cache` (
-	  `id` int not null auto_increment primary key,
-	  `hash` varchar(32),
-	  `content` text,
-	  `last_update` int(16)
+	  `id` int(11) not null auto_increment primary key,
+	  `hash` varchar(32) not null,
+	  `content` text not null,
+	  `last_update` int(16) not null
 	);
 
 To deactivate caching, leave the tablename empty, which is also
@@ -2008,10 +2022,10 @@ An example SQL statement (for MySQL) that will create an appropriate
 database dictionary table:
 
 	create table `phrase` (
-	  `id` int not null auto_increment primary key,
+	  `id` int(11) not null auto_increment primary key,
   	  `language` varchar(5) not null,
-	  `name` varchar(32),
-	  `translations` text
+	  `name` varchar(32) not null,
+	  `translations` text not null
 	);
 
 To deactivate the translation feature, just leave the tablename empty,
@@ -2697,6 +2711,17 @@ Example:
 	my $text_in_current_language =
 		_('Hello, World!');
 
+If you need to call the _() method from within a template, just
+use the core generator I<t>, as in this example:
+
+	<t>Hello</t>, dude!
+	<t lang="de_DE">Hello</t>, dude!
+
+This is equivalent to the following calls within perl:
+
+	_('Hello');
+	_('Hello', 'de_DE');
+
 =head3 lang()
 
 The lang() method is used to set and retrieve the language
@@ -2822,16 +2847,16 @@ None by default.
 
 =head1 SEE ALSO
 
+CGI::WebToolkit::Tutorial
+
 Other modules are worth a look, including CGI, CGI::App and many more.
 Use the search on cpan.org to find alternatives to the CGI::WebToolkit.
-
-There is no mailing list for this module.
 
 There is no website for this module.
 
 If you have any questions, hints or something else to say,
-please mail to tokirc@gmx.net - thank you for helping
-make CGI::WebToolkit better!
+please mail to tokirc@gmx.net or post in the comp.lang.perl.modules
+mailing list- thank you for helping make CGI::WebToolkit better!
 
 =head1 AUTHOR
 

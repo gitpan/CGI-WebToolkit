@@ -1,30 +1,30 @@
-/* standard database tables for WTB */
+/* standard database tables for WTK */
 
 create table `session` (
-	`id` int not null auto_increment primary key,
-	`session_id` varchar(32),
-	`content` text,
-	`last_update` int(16)
+	`id` int(11) not null auto_increment primary key,
+	`session_id` varchar(32) not null,
+	`content` text not null,
+	`last_update` int(16) not null
 );
 
 create table `user` (
-	`id` int not null auto_increment primary key,
-	`loginname` varchar(255),
-	`password` varchar(32),
-	`language` varchar(5)
+	`id` int(11) not null auto_increment primary key,
+	`loginname` varchar(255) not null,
+	`password` varchar(32) not null,
+	`language` varchar(5) not null
 );
 
 create table `cache` (
-	`id` int not null auto_increment primary key,
-	`hash` varchar(32),
-	`content` mediumtext,
-	`last_update` int(16)
+	`id` int(11) not null auto_increment primary key,
+	`hash` varchar(32) not null,
+	`content` mediumtext not null,
+	`last_update` int(16) not null
 );
 
 create table `phrase` (
-	`id` int not null auto_increment primary key,
+	`id` int(11) not null auto_increment primary key,
 	`language` varchar(5) not null,
-	`name` varchar(32),
-	`translations` text
+	`name` varchar(32) not null,
+	`translations` text not null
 );
 

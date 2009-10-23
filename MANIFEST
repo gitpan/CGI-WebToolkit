@@ -1,9 +1,14 @@
-.DS_Store
+CGI-WebToolkit-0.05/pod2htmd.tmp
+CGI-WebToolkit-0.05/t/private/templates/core/error.html
+CGI-WebToolkit-0.05/t/private/templates/core/subsubheadline.html
+CGI-WebToolkit-0.05/t/private/workflows/core/combine/css.pl
+CGI-WebToolkit-0.05/t/public/core/tigra_slider_control/blueh_bg.gif
+CGI-WebToolkit-0.05/t/public/core/tigra_slider_control/logo.gif
 Changes
 lib/CGI/WebToolkit.pm
+lib/CGI/WebToolkit/Tutorial.pm
 makedoc.sh
 MANIFEST			This list of files
-MANIFEST.bak
 MANIFEST.SKIP
 META.yml
 pod2htmd.tmp
@@ -13,6 +18,7 @@ t/CGI-WebToolkit.t
 t/cgi/test.pl
 t/private/generators/core/grid.pl
 t/private/generators/core/redirect.pl
+t/private/generators/core/t.pl
 t/private/generators/core/table.pl
 t/private/javascripts/datepicker.js
 t/private/javascripts/jscolor.js
@@ -21,11 +27,15 @@ t/private/javascripts/prototype-date-extensions.js
 t/private/javascripts/prototype.js
 t/private/javascripts/slider.js
 t/private/javascripts/tablekit.js
+t/private/javascripts/wz_jsgraphics.js
 t/private/modules/Email.pm
 t/private/modules/StringUtils.pm
 t/private/schemas/core.sql
+t/private/styles/960.css
 t/private/styles/common.css
 t/private/styles/datepicker.css
+t/private/styles/reset.css
+t/private/styles/text.css
 t/private/templates/core/ajaxinlineform.html
 t/private/templates/core/ajaxlink.html
 t/private/templates/core/box.html
@@ -70,6 +80,7 @@ t/private/workflows/core/error.pl
 t/private/workflows/test/form_simple.pl
 t/private/workflows/test/form_simple_process.pl
 t/private/workflows/test/home.pl
+t/private/workflows/test/jsdraw.pl
 t/private/workflows/test/no_guests.pl
 t/public/core/datepicker/calendar.png
 t/public/core/datepicker/clock.png

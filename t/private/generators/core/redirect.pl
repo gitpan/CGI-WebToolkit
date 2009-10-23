@@ -1,6 +1,12 @@
 my ($data) = @args;
 
-my ($url, $query_string) = @_;
+my $data_defaults = {
+	'content'      => '',
+	'query_string' => '',
+};
+my $params = CGI::WebToolkit::__parse_params( $data, $data_defaults );
+
+my ($url, $query_string) = ($params->{'content'}, $params->{'query_string'});
 
 $url = (exists $ENV{'SCRIPT_NAME'} ? $ENV{'SCRIPT_NAME'} : '') unless defined $url;
 $query_string = '' unless defined $query_string;
