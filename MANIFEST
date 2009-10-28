@@ -1,18 +1,8 @@
-CGI-WebToolkit-0.05/pod2htmd.tmp
-CGI-WebToolkit-0.05/t/private/templates/core/error.html
-CGI-WebToolkit-0.05/t/private/templates/core/subsubheadline.html
-CGI-WebToolkit-0.05/t/private/workflows/core/combine/css.pl
-CGI-WebToolkit-0.05/t/public/core/tigra_slider_control/blueh_bg.gif
-CGI-WebToolkit-0.05/t/public/core/tigra_slider_control/logo.gif
 Changes
 lib/CGI/WebToolkit.pm
 lib/CGI/WebToolkit/Tutorial.pm
-makedoc.sh
+Makefile.PL
 MANIFEST			This list of files
-MANIFEST.SKIP
-META.yml
-pod2htmd.tmp
-pod2htmi.tmp
 README
 t/CGI-WebToolkit.t
 t/cgi/test.pl
@@ -122,3 +112,4 @@ t/public/core/tigra_slider_control/sldr5h_sl.gif
 t/public/core/tigra_slider_control/sldr5v_bg.gif
 t/public/core/tigra_slider_control/sldr5v_sl.gif
 t/public/core/tigra_slider_control/tigra_slider.gif
+META.yml                                 Module meta-data (added by MakeMaker)

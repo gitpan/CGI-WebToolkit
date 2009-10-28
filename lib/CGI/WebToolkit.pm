@@ -10,7 +10,7 @@ use Data::Dump qw(dump);
 use DBI;
 use Digest::MD5 qw(md5_hex);
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 our $WTK = undef;
 
