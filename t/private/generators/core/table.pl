@@ -14,7 +14,12 @@ my $transformers =
 
 $transformers = [] unless defined $transformers;
 return '<p><i>No entries found.</i></p>' unless scalar @{$content};
-my $htm = '<table class="sortable">';
+my $htm = '';
+
+my $table_id = 'table_'.time().rand(10000);
+$htm .= '<form><p class="filter">Filter: <input name="filter" onkeyup="tablefilter(this, \''.$table_id.'\', 1)" type="text"></p></form>';
+$htm .= '<div class="clear"></div>';
+$htm .= '<table class="sortable" id="'.$table_id.'">';
 $htm .= '<tr>';
 foreach my $headline (@{$headlines}) {
 	$htm .= '<th>'.$headline.'</th>';	

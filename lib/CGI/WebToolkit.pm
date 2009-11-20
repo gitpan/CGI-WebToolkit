@@ -10,7 +10,7 @@ use Data::Dump qw(dump);
 use DBI;
 use Digest::MD5 qw(md5_hex);
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 our $WTK = undef;
 
@@ -1204,7 +1204,11 @@ sub __get_cache_hash
 		# commented, because makes cache renew too often...
 		#map { $string .= __serialize($self->get($_)) } keys %{$self->{'session'}};
 		
-		map { $string .= __serialize(param($_))      } param();
+		map {
+			$string .=
+				($_ eq $self->{'idparam'} || $_ eq $self->{'clearcacheparam'} ?
+					'' : __serialize(param($_)));
+		} param();
 		$string .= __serialize(\@args);
 	}
 	
@@ -1489,7 +1493,7 @@ sub __deserialize
 sub __connect_to_db
 {
     my ($self) = @_;
-	return 1 if defined $self->{'dbh'} && ref($self->{'dbh'}) eq 'DBI';
+	return 1 if defined $self->{'dbh'}; # && ref($self->{'dbh'}) eq 'DBI';
     
     $self->{'dbh'}
         = DBI->connect(
@@ -2488,6 +2492,9 @@ To retrieve records from the database, use the select() method:
 	  -order 		=> [qw(id name ...)],
 	  -limit 		=> 10,
 	  -distinct 	=> 1,
+	  -columns		=> [qw(id name ...)],
+	  -joins		=> { name => name, ... },
+	  -sortdir		=> 'asc', # or 'desc'
 	);
 
 To access the records of the result set, use the normal DBI methods:
