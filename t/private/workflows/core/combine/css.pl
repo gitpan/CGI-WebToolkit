@@ -13,7 +13,7 @@ foreach my $name (@{$wtk->{'cssfiles'}}) {
 
 # erease comments
 $css =~ s/\/\/[^\n\r]*[\r\n]//g;
-$css =~ s/\/[^\/]+\///mg;
+$css =~ s/\/\*[^\/]+\*\///mg;
 
 # many whitespaces -> one whitespace
 $css =~ s/[\s\t\n\r]+/ /g;

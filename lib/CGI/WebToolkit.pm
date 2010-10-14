@@ -10,7 +10,7 @@ use Data::Dump qw(dump);
 use DBI;
 use Digest::MD5 qw(md5_hex);
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 our $WTK = undef;
 
@@ -21,7 +21,9 @@ our @XHTML_TAGS
 		 h6 head hr html i iframe img input ins kbd label legend li
 		 link map meta noframes noscript object ol optgroup option p
 		 param pre q samp script select small span strong style sub sup
-		 table tbody td textarea tfoot th thead title tr tt ul var);
+		 table tbody td textarea tfoot th thead title tr tt ul var marquee
+		 section header footer nav article
+		 emph);
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
